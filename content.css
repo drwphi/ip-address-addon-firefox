@@ -10,7 +10,9 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace !important;
   font-size: 11px !important;
   z-index: 999999 !important;
-  cursor: default !important;
+  display: flex !important;
+  align-items: center !important;
+  text-decoration: none !important;
   transition: all 0.3s ease !important;
   user-select: text !important;
   -webkit-user-select: text !important;
@@ -22,15 +24,35 @@
   -webkit-backdrop-filter: blur(5px) !important;
 }
 
+/* Position when shown in the bottom-left corner */
+.website-ip-display.left {
+  right: auto !important;
+  left: 10px !important;
+}
+
+/* Styling for the arrow that toggles the position */
+.ip-toggle {
+  cursor: pointer !important;
+  user-select: none !important;
+  margin-right: 4px !important;
+}
+
+.ip-link {
+  cursor: pointer !important;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.website-ip-display.left .ip-toggle {
+  margin-right: 0 !important;
+  margin-left: 4px !important;
+}
+
 .website-ip-display:hover {
   opacity: 1 !important;
   background-color: rgba(0, 0, 0, 0.85) !important;
 }
 
-.website-ip-display.moved-left {
-  right: auto !important;
-  left: 10px !important;
-}
 
 /* Zorg dat het element niet interfereert met pagina-interacties */
 .website-ip-display {

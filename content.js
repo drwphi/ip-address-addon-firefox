@@ -1,62 +1,69 @@
-// content.js - Toont het IP-adres op de pagina
+// content.js - Shows the website IP address
+// Container that holds the arrow and the link
 let ipDisplay = null;
+// The clickable link showing the IP
+let ipLink = null;
+let arrow = null;
 let currentIP = null;
 let isLookingUp = false;
+let isLeft = false;
 
-// Functie om het IP-display element te maken
+// Create the IP display element
 function createIPDisplay() {
   if (ipDisplay) return;
-  
+
   ipDisplay = document.createElement('div');
   ipDisplay.className = 'website-ip-display';
-  ipDisplay.textContent = 'IP ophalen...';
-  
-  // Voeg hover event listeners toe
-  ipDisplay.addEventListener('mouseenter', () => {
-    ipDisplay.classList.add('moved-left');
-  });
-  
-  ipDisplay.addEventListener('mouseleave', () => {
-    ipDisplay.classList.remove('moved-left');
-  });
-  
-  // Klik om opnieuw op te halen
-  ipDisplay.addEventListener('click', () => {
-    if (!isLookingUp) {
-      displayIP(true);
-    }
-  });
-  
+
+  arrow = document.createElement('span');
+  arrow.className = 'ip-toggle';
+  arrow.textContent = '◀';
+
+  ipLink = document.createElement('a');
+  ipLink.className = 'ip-link';
+  ipLink.textContent = 'IP ophalen...';
+  ipLink.href = '#';
+  ipLink.target = '_blank';
+
+  arrow.addEventListener('click', togglePosition);
+
+  ipDisplay.appendChild(arrow);
+  ipDisplay.appendChild(ipLink);
   document.body.appendChild(ipDisplay);
+
+  updatePosition();
 }
 
-// Functie om IP op te halen en weer te geven
+// Retrieve and display the IP
 function displayIP(forceRefresh = false) {
   const hostname = window.location.hostname;
   
   if (!hostname) {
-    if (ipDisplay) {
-      ipDisplay.textContent = 'Geen hostname';
+    if (ipLink) {
+      ipLink.textContent = 'Geen hostname';
+      ipLink.removeAttribute('href');
     }
     return;
   }
   
-  // Als het al een IP-adres is, toon het direct
+  // If the hostname is already an IP address, show it
   if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
-    if (ipDisplay) {
-      ipDisplay.textContent = hostname;
-      ipDisplay.title = 'Dit is al een IP-adres';
+    if (ipLink) {
+      ipLink.textContent = hostname;
+      ipLink.title = 'Dit is al een IP-adres';
+      ipLink.href = `https://ipinfo.io/${hostname}/json?token=63251f89ade4d1`;
     }
     return;
   }
   
-  // Toon dat we bezig zijn
-  if (ipDisplay) {
-    ipDisplay.textContent = 'Zoeken...';
+  // Show that a lookup is in progress
+  if (ipLink) {
+    ipLink.textContent = 'Zoeken...';
+    ipLink.removeAttribute('href');
     isLookingUp = true;
   }
   
-  // Vraag background script om IP
+  // Request the IP from the background script
   browser.runtime.sendMessage({
     action: 'getIP',
     hostname: hostname,
@@ -66,32 +73,51 @@ function displayIP(forceRefresh = false) {
     
     if (response && response.ip) {
       currentIP = response.ip;
-      if (ipDisplay) {
-        ipDisplay.textContent = currentIP;
-        ipDisplay.title = `${hostname} → ${currentIP}\nKlik om te vernieuwen`;
+      if (ipLink) {
+        ipLink.textContent = currentIP;
+        ipLink.title = `${hostname} → ${currentIP}`;
+        ipLink.href = `https://ipinfo.io/${currentIP}/json?token=63251f89ade4d1`;
       }
     } else {
-      // Als lookup faalt, probeer het nog een keer na kort wachten
+      // Retry after a short delay if lookup fails
       if (!forceRefresh) {
         setTimeout(() => displayIP(true), 1000);
       } else {
-        if (ipDisplay) {
-          ipDisplay.textContent = 'IP onbekend';
-          ipDisplay.title = `${hostname}\nKlik om opnieuw te proberen`;
+        if (ipLink) {
+          ipLink.textContent = 'IP onbekend';
+          ipLink.title = hostname;
+          ipLink.removeAttribute('href');
         }
       }
     }
   }).catch(error => {
     isLookingUp = false;
     console.error('Fout bij ophalen IP:', error);
-    if (ipDisplay) {
-      ipDisplay.textContent = 'Fout';
-      ipDisplay.title = 'Klik om opnieuw te proberen';
+    if (ipLink) {
+      ipLink.textContent = 'Fout';
+      ipLink.title = hostname;
+      ipLink.removeAttribute('href');
     }
   });
 }
 
-// Initialiseer wanneer de pagina geladen is
+function togglePosition() {
+  isLeft = !isLeft;
+  updatePosition();
+}
+
+function updatePosition() {
+  if (!ipDisplay || !arrow) return;
+  if (isLeft) {
+    ipDisplay.classList.add('left');
+    arrow.textContent = '▶';
+  } else {
+    ipDisplay.classList.remove('left');
+    arrow.textContent = '◀';
+  }
+}
+
+// Initialize when the page is loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
@@ -99,7 +125,7 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
-  // Niet tonen op bepaalde pagina's
+  // Skip certain protocols
   if (window.location.protocol === 'about:' || 
       window.location.protocol === 'chrome:' ||
       window.location.protocol === 'moz-extension:' ||
@@ -111,7 +137,7 @@ function init() {
   displayIP();
 }
 
-// Update bij navigatie zonder page reload (voor SPA's)
+// Update on navigation without a page reload (for SPAs)
 let lastUrl = location.href;
 new MutationObserver(() => {
   const url = location.href;
