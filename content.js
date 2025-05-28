@@ -1,36 +1,24 @@
-// content.js - Toont het IP-adres op de pagina
+// content.js - Shows the website IP address
 let ipDisplay = null;
 let currentIP = null;
 let isLookingUp = false;
 
-// Functie om het IP-display element te maken
+// Create the IP display element
 function createIPDisplay() {
   if (ipDisplay) return;
   
-  ipDisplay = document.createElement('div');
+  ipDisplay = document.createElement('a');
   ipDisplay.className = 'website-ip-display';
   ipDisplay.textContent = 'IP ophalen...';
-  
-  // Voeg hover event listeners toe
-  ipDisplay.addEventListener('mouseenter', () => {
-    ipDisplay.classList.add('moved-left');
-  });
-  
-  ipDisplay.addEventListener('mouseleave', () => {
-    ipDisplay.classList.remove('moved-left');
-  });
-  
-  // Klik om opnieuw op te halen
-  ipDisplay.addEventListener('click', () => {
-    if (!isLookingUp) {
-      displayIP(true);
-    }
-  });
+  ipDisplay.href = '#';
+  ipDisplay.target = '_blank';
+
+  // Link is updated when the IP becomes available
   
   document.body.appendChild(ipDisplay);
 }
 
-// Functie om IP op te halen en weer te geven
+// Retrieve and display the IP
 function displayIP(forceRefresh = false) {
   const hostname = window.location.hostname;
   
@@ -41,22 +29,23 @@ function displayIP(forceRefresh = false) {
     return;
   }
   
-  // Als het al een IP-adres is, toon het direct
-  if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
-    if (ipDisplay) {
-      ipDisplay.textContent = hostname;
-      ipDisplay.title = 'Dit is al een IP-adres';
+  // If the hostname is already an IP address, show it
+    if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      if (ipDisplay) {
+        ipDisplay.textContent = hostname;
+        ipDisplay.title = 'Dit is al een IP-adres';
+        ipDisplay.href = `https://ipinfo.io/${hostname}/json?token=63251f89ade4d1`;
+      }
+      return;
     }
-    return;
-  }
   
-  // Toon dat we bezig zijn
+  // Show that a lookup is in progress
   if (ipDisplay) {
     ipDisplay.textContent = 'Zoeken...';
     isLookingUp = true;
   }
   
-  // Vraag background script om IP
+  // Request the IP from the background script
   browser.runtime.sendMessage({
     action: 'getIP',
     hostname: hostname,
@@ -68,16 +57,18 @@ function displayIP(forceRefresh = false) {
       currentIP = response.ip;
       if (ipDisplay) {
         ipDisplay.textContent = currentIP;
-        ipDisplay.title = `${hostname} → ${currentIP}\nKlik om te vernieuwen`;
+        ipDisplay.title = `${hostname} → ${currentIP}`;
+        ipDisplay.href = `https://ipinfo.io/${currentIP}/json?token=63251f89ade4d1`;
       }
     } else {
-      // Als lookup faalt, probeer het nog een keer na kort wachten
+      // Retry after a short delay if lookup fails
       if (!forceRefresh) {
         setTimeout(() => displayIP(true), 1000);
       } else {
         if (ipDisplay) {
           ipDisplay.textContent = 'IP onbekend';
-          ipDisplay.title = `${hostname}\nKlik om opnieuw te proberen`;
+          ipDisplay.title = hostname;
+          ipDisplay.href = '#';
         }
       }
     }
@@ -86,12 +77,13 @@ function displayIP(forceRefresh = false) {
     console.error('Fout bij ophalen IP:', error);
     if (ipDisplay) {
       ipDisplay.textContent = 'Fout';
-      ipDisplay.title = 'Klik om opnieuw te proberen';
+      ipDisplay.title = hostname;
+      ipDisplay.href = '#';
     }
   });
 }
 
-// Initialiseer wanneer de pagina geladen is
+// Initialize when the page is loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
@@ -99,7 +91,7 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
-  // Niet tonen op bepaalde pagina's
+  // Skip certain protocols
   if (window.location.protocol === 'about:' || 
       window.location.protocol === 'chrome:' ||
       window.location.protocol === 'moz-extension:' ||
@@ -111,7 +103,7 @@ function init() {
   displayIP();
 }
 
-// Update bij navigatie zonder page reload (voor SPA's)
+// Update on navigation without a page reload (for SPAs)
 let lastUrl = location.href;
 new MutationObserver(() => {
   const url = location.href;
