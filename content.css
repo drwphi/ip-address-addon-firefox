@@ -31,7 +31,7 @@
 
 /* Zorg dat het element niet interfereert met pagina-interacties */
 .website-ip-display {
-  pointer-events: all !important;
+  pointer-events: auto !important;
 }
 
 /* Verberg op print */
