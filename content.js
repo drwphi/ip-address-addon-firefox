@@ -12,6 +12,7 @@ function createIPDisplay() {
   ipDisplay.textContent = 'IP ophalen...';
   ipDisplay.href = '#';
   ipDisplay.target = '_blank';
+  ipDisplay.rel = 'noopener noreferrer';
 
   // Link is updated when the IP becomes available
   
