@@ -10,7 +10,8 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace !important;
   font-size: 11px !important;
   z-index: 999999 !important;
-  cursor: default !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
   transition: all 0.3s ease !important;
   user-select: text !important;
   -webkit-user-select: text !important;
@@ -27,10 +28,6 @@
   background-color: rgba(0, 0, 0, 0.85) !important;
 }
 
-.website-ip-display.moved-left {
-  right: auto !important;
-  left: 10px !important;
-}
 
 /* Zorg dat het element niet interfereert met pagina-interacties */
 .website-ip-display {
