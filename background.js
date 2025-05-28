@@ -1,18 +1,18 @@
-// background.js - Haalt IP-adressen op voor websites
+// background.js - Retrieves IP addresses for websites
 const ipCache = new Map();
 
-// Luister naar berichten van content scripts
+// Listen for messages from content scripts
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getIP') {
     const hostname = request.hostname;
     
-    // Check cache eerst
+    // Check cache first
     if (ipCache.has(hostname)) {
       sendResponse({ ip: ipCache.get(hostname) });
       return;
     }
     
-    // Gebruik externe API voor betrouwbare IP lookup
+    // Use external API for reliable IP lookup
     fetchIPFromAPI(hostname).then(ip => {
       if (ip) {
         ipCache.set(hostname, ip);
@@ -29,10 +29,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Functie die externe API gebruikt voor IP lookup
+// Function that uses an external API for IP lookup
 async function fetchIPFromAPI(hostname) {
   try {
-    // Methode 1: Gebruik ipapi.co
+    // Method 1: use ipapi.co
     const response1 = await fetch(`https://ipapi.co/${hostname}/json/`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 Firefox Extension'
@@ -50,12 +50,12 @@ async function fetchIPFromAPI(hostname) {
   }
   
   try {
-    // Methode 2: Gebruik dns.google.com
+    // Method 2: use dns.google.com
     const response2 = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`);
     const data = await response2.json();
     
     if (data.Answer && data.Answer.length > 0) {
-      // Zoek naar een A record (IPv4)
+      // Look for an A record (IPv4)
       for (const answer of data.Answer) {
         if (answer.type === 1) { // Type 1 = A record
           return answer.data;
@@ -67,7 +67,7 @@ async function fetchIPFromAPI(hostname) {
   }
   
   try {
-    // Methode 3: Gebruik cloudflare DNS
+    // Method 3: use Cloudflare DNS
     const response3 = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
       headers: {
         'Accept': 'application/dns-json'
@@ -91,18 +91,18 @@ async function fetchIPFromAPI(hostname) {
   return null;
 }
 
-// Clear cache elke 30 minuten
+// Clear cache every 30 minutes
 setInterval(() => {
   ipCache.clear();
 }, 30 * 60 * 1000);
 
-// Luister naar tab updates om cache te clearen voor specifieke hosts
+// Listen for tab updates to clear the cache for specific hosts
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     try {
       const url = new URL(tab.url);
       const hostname = url.hostname;
-      // Verwijder uit cache om verse lookup te forceren
+      // Remove from cache to force a fresh lookup
       ipCache.delete(hostname);
     } catch (e) {
       // Ignore invalid URLs
