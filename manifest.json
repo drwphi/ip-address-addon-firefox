@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "Website IP",
+  "version": "1.0",
+  "description": "Toont het IP-adres van de huidige website",
+  
+  "permissions": [
+    "activeTab",
+    "webRequest",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ]
+}
