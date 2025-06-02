@@ -69,15 +69,26 @@ function displayIP(forceRefresh = false) {
     return;
   }
   
-  // If the hostname is already an IP address, show it
-    if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
-      if (ipLink) {
-        ipLink.textContent = hostname;
-        ipLink.title = 'Dit is al een IP-adres';
-        ipLink.href = `https://ipinfo.io/${hostname}/json?token=63251f89ade4d1`;
-      }
-      return;
+  // Detect IPv4 and IPv6 hostnames
+  const isIPv4 = /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+  const isIPv6 = /^[0-9a-fA-F:]+$/.test(hostname);
+
+  // Show the address directly when the hostname is already an IP
+  if (isIPv4) {
+    if (ipLink) {
+      ipLink.textContent = hostname;
+      ipLink.title = 'Dit is al een IP-adres';
+      ipLink.href = `https://ipinfo.io/${hostname}/json?token=63251f89ade4d1`;
     }
+    return;
+  } else if (isIPv6) {
+    if (ipLink) {
+      ipLink.textContent = hostname;
+      ipLink.title = 'Dit is al een IPv6-adres';
+      ipLink.href = '#';
+    }
+    return;
+  }
   
   // Show that a lookup is in progress
   if (ipLink) {
