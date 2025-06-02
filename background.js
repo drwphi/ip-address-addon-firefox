@@ -32,6 +32,15 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Function that uses an external API for IP lookup
 async function fetchIPFromAPI(hostname) {
   try {
+    // Method 0: browser DNS lookup
+    const result = await browser.dns.resolve(hostname, ['disable_trr']);
+    if (result && result.addresses && result.addresses.length) {
+      return result.addresses[0];
+    }
+  } catch (e) {
+    console.log('browser.dns.resolve failed');
+  }
+  try {
     // Method 1: use ipapi.co
     const response1 = await fetch(`https://ipapi.co/${hostname}/json/`, {
       headers: {
