@@ -10,7 +10,7 @@ This add-on displays the IP address of the website you visit. The address appear
 The IP address will be shown on every site you visit.
 
 ## Permissions
-The extension requests the `Access your data for all websites` permission. This is required to read the IP address of each visited page. The add-on does not collect or store browsing data.
+The extension requests the `Access your data for all websites` permission. This is required to read the IP address of each visited page. It now also uses the `dns` permission to resolve hostnames directly, without relying on external services. The add-on does not collect or store browsing data.
 
 ## Mozilla Add-ons
 This add-on has been submitted to the Firefox Add-ons store. Once approved it will be available at <https://addons.mozilla.org/nl/firefox/addon/website-ip1/>.
