@@ -7,7 +7,8 @@
   "permissions": [
     "activeTab",
     "webRequest",
-    "<all_urls>"
+    "<all_urls>",
+    "dns"
   ],
 
   "background": {

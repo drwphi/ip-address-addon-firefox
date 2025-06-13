@@ -12,8 +12,8 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return;
     }
     
-    // Use external API for reliable IP lookup
-    fetchIPFromAPI(hostname).then(ip => {
+    // Try to resolve using the browser DNS API first
+    resolveIP(hostname).then(ip => {
       if (ip) {
         ipCache.set(hostname, ip);
         sendResponse({ ip: ip });
@@ -28,6 +28,19 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Async response
   }
 });
+
+// Resolve IP address using the browser DNS API; fall back to external lookup on failure
+async function resolveIP(hostname) {
+  try {
+    const result = await browser.dns.resolve(hostname, ["disable_ipv6"]);
+    if (result && result.addresses && result.addresses.length > 0) {
+      return result.addresses[0];
+    }
+  } catch (e) {
+    console.log('browser.dns failed, using external API...');
+  }
+  return fetchIPFromAPI(hostname);
+}
 
 // Function that uses an external API for IP lookup
 async function fetchIPFromAPI(hostname) {
