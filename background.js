@@ -73,7 +73,22 @@ async function fetchIPFromAPI(hostname) {
       // Try next service
     }
   }
-  
+
+  // Last resort: use ipapi.co
+  try {
+    const resp = await fetch(`https://ipapi.co/${hostname}/json/`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.ip) {
+        return data.ip;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   return null;
 }
 

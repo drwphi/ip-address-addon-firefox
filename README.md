@@ -11,6 +11,7 @@ The IP address will be shown on every site you visit. From version 1.1 the add-o
 
 ## Permissions
 The extension requests the `Access your data for all websites` permission. This is required to read the IP address of each visited page. It now also uses the `dns` permission to resolve hostnames directly, without relying on external services. The add-on does not collect or store browsing data.
+If that DNS API is unavailable the extension falls back to public DNS services and finally ipapi.co.
 
 ## Mozilla Add-ons
 This add-on has been submitted to the Firefox Add-ons store. Once approved it will be available at <https://addons.mozilla.org/nl/firefox/addon/website-ip1/>.
