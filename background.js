@@ -31,13 +31,17 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Resolve IP address using the browser DNS API; fall back to external lookup on failure
 async function resolveIP(hostname) {
-  try {
-    const result = await browser.dns.resolve(hostname);
-    if (result && result.addresses && result.addresses.length > 0) {
-      return result.addresses[0];
+  if (browser.dns && browser.dns.resolve) {
+    try {
+      const result = await browser.dns.resolve(hostname);
+      if (result && result.addresses && result.addresses.length > 0) {
+        return result.addresses[0];
+      }
+    } catch (e) {
+      console.log('browser.dns failed, using external API...');
     }
-  } catch (e) {
-    console.log('browser.dns failed, using external API...');
+  } else {
+    console.log('browser.dns unsupported, using external API...');
   }
   return fetchIPFromAPI(hostname);
 }
