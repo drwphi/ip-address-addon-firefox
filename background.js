@@ -25,17 +25,17 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     
     // Try to resolve using the browser DNS API first
-    resolveIP(hostname).then(ip => {
-      if (ip) {
-        ipCache.set(hostname, ip);
-        sendResponse({ ip: ip });
-      } else {
-        sendResponse({ ip: null, error: 'IP niet gevonden' });
-      }
-    }).catch(error => {
-      console.error('IP lookup fout:', error);
-      sendResponse({ ip: null, error: error.message });
-    });
+      resolveIP(hostname).then(ip => {
+        if (ip) {
+          ipCache.set(hostname, ip);
+          sendResponse({ ip: ip });
+        } else {
+          sendResponse({ ip: null, error: 'IP not found' });
+        }
+      }).catch(error => {
+        console.error('IP lookup error:', error);
+        sendResponse({ ip: null, error: error.message });
+      });
     
     return true; // Async response
   }
@@ -108,17 +108,3 @@ async function fetchIPFromAPI(hostname) {
 setInterval(() => {
   ipCache.clear();
 }, 30 * 60 * 1000);
-
-// Listen for tab updates to clear the cache for specific hosts
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url) {
-    try {
-      const url = new URL(tab.url);
-      const hostname = url.hostname;
-      // Remove from cache to force a fresh lookup
-      ipCache.delete(hostname);
-    } catch (e) {
-      // Ignore invalid URLs
-    }
-  }
-});
