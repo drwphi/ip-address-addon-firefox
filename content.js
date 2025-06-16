@@ -69,8 +69,8 @@ function displayIP(forceRefresh = false) {
     return;
   }
   
-  // If the hostname is already an IP address, show it
-    if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+  // If the hostname is already an IP address, show it (IPv4 or IPv6)
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || /^[0-9a-fA-F:]+$/.test(hostname)) {
       if (ipLink) {
         ipLink.textContent = hostname;
         ipLink.title = 'Dit is al een IP-adres';

@@ -1,6 +1,18 @@
 // background.js - Retrieves IP addresses for websites
 const ipCache = new Map();
 
+// Capture IPs from completed requests to avoid additional lookups
+browser.webRequest.onCompleted.addListener(details => {
+  if (details.type === 'main_frame' && details.ip) {
+    try {
+      const url = new URL(details.url);
+      ipCache.set(url.hostname, details.ip);
+    } catch (e) {
+      // Ignore invalid URLs
+    }
+  }
+}, { urls: ['<all_urls>'] });
+
 // Listen for messages from content scripts
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getIP') {
@@ -12,82 +24,93 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return;
     }
     
-    // Use external API for reliable IP lookup
-    fetchIPFromAPI(hostname).then(ip => {
-      if (ip) {
-        ipCache.set(hostname, ip);
-        sendResponse({ ip: ip });
-      } else {
-        sendResponse({ ip: null, error: 'IP niet gevonden' });
-      }
-    }).catch(error => {
-      console.error('IP lookup fout:', error);
-      sendResponse({ ip: null, error: error.message });
-    });
+    // Try to resolve using the browser DNS API first
+      resolveIP(hostname).then(ip => {
+        if (ip) {
+          ipCache.set(hostname, ip);
+          sendResponse({ ip: ip });
+        } else {
+          sendResponse({ ip: null, error: 'IP not found' });
+        }
+      }).catch(error => {
+        console.error('IP lookup error:', error);
+        sendResponse({ ip: null, error: error.message });
+      });
     
     return true; // Async response
   }
 });
 
+// Resolve IP address using the browser DNS API; fall back to external lookup on failure
+async function resolveIP(hostname) {
+  if (browser.dns && browser.dns.resolve) {
+    try {
+      // Prefer IPv4 when available
+      const ipv4 = await browser.dns.resolve(hostname, ["disable_ipv6"]);
+      if (ipv4 && ipv4.addresses && ipv4.addresses.length > 0) {
+        return ipv4.addresses[0];
+      }
+    } catch (_) {
+      // Ignore and try generic resolve
+    }
+
+    try {
+      const result = await browser.dns.resolve(hostname);
+      if (result && result.addresses && result.addresses.length > 0) {
+        return result.addresses[0];
+      }
+    } catch (e) {
+      console.log('browser.dns failed, using external API...');
+    }
+  } else {
+    console.log('browser.dns unsupported, using external API...');
+  }
+  return fetchIPFromAPI(hostname);
+}
+
 // Function that uses an external API for IP lookup
 async function fetchIPFromAPI(hostname) {
-  try {
-    // Method 1: use ipapi.co
-    const response1 = await fetch(`https://ipapi.co/${hostname}/json/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 Firefox Extension'
+  const lookups = [
+    `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`,
+    `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=AAAA`,
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`,
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=AAAA`
+  ];
+
+  for (const url of lookups) {
+    try {
+      const headers = url.includes('cloudflare') ? { 'Accept': 'application/dns-json' } : {};
+      const response = await fetch(url, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.Answer && data.Answer.length > 0) {
+          for (const answer of data.Answer) {
+            if (answer.type === 1 || answer.type === 28) {
+              return answer.data;
+            }
+          }
+        }
       }
+    } catch (e) {
+      // Try next service
+    }
+  }
+
+  // Last resort: use ipapi.co
+  try {
+    const resp = await fetch(`https://ipapi.co/${hostname}/json/`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    
-    if (response1.ok) {
-      const data = await response1.json();
+    if (resp.ok) {
+      const data = await resp.json();
       if (data.ip) {
         return data.ip;
       }
     }
   } catch (e) {
-    console.log('ipapi.co failed, trying alternative...');
+    // ignore
   }
-  
-  try {
-    // Method 2: use dns.google.com
-    const response2 = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`);
-    const data = await response2.json();
-    
-    if (data.Answer && data.Answer.length > 0) {
-      // Look for an A record (IPv4)
-      for (const answer of data.Answer) {
-        if (answer.type === 1) { // Type 1 = A record
-          return answer.data;
-        }
-      }
-    }
-  } catch (e) {
-    console.log('dns.google failed, trying alternative...');
-  }
-  
-  try {
-    // Method 3: use Cloudflare DNS
-    const response3 = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`, {
-      headers: {
-        'Accept': 'application/dns-json'
-      }
-    });
-    
-    if (response3.ok) {
-      const data = await response3.json();
-      if (data.Answer && data.Answer.length > 0) {
-        for (const answer of data.Answer) {
-          if (answer.type === 1) {
-            return answer.data;
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.log('Cloudflare DNS failed');
-  }
-  
+
   return null;
 }
 
@@ -95,17 +118,3 @@ async function fetchIPFromAPI(hostname) {
 setInterval(() => {
   ipCache.clear();
 }, 30 * 60 * 1000);
-
-// Listen for tab updates to clear the cache for specific hosts
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url) {
-    try {
-      const url = new URL(tab.url);
-      const hostname = url.hostname;
-      // Remove from cache to force a fresh lookup
-      ipCache.delete(hostname);
-    } catch (e) {
-      // Ignore invalid URLs
-    }
-  }
-});
