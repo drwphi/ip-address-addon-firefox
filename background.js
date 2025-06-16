@@ -1,6 +1,18 @@
 // background.js - Retrieves IP addresses for websites
 const ipCache = new Map();
 
+// Capture IPs from completed requests to avoid additional lookups
+browser.webRequest.onCompleted.addListener(details => {
+  if (details.type === 'main_frame' && details.ip) {
+    try {
+      const url = new URL(details.url);
+      ipCache.set(url.hostname, details.ip);
+    } catch (e) {
+      // Ignore invalid URLs
+    }
+  }
+}, { urls: ['<all_urls>'] });
+
 // Listen for messages from content scripts
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getIP') {
