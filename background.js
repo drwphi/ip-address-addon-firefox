@@ -1,5 +1,7 @@
 // background.js - Retrieves IP addresses for websites
 const ipCache = new Map();
+// Cache entries remain valid for thirty minutes
+const CACHE_DURATION_MS = 30 * 60 * 1000;
 
 // Listen for messages from content scripts
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -104,10 +106,10 @@ async function fetchIPFromAPI(hostname) {
   return null;
 }
 
-// Clear cache every 30 minutes
+// Clear the entire cache at regular intervals
 setInterval(() => {
   ipCache.clear();
-}, 30 * 60 * 1000);
+}, CACHE_DURATION_MS);
 
 // Listen for tab updates to clear the cache for specific hosts
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
